@@ -1,12 +1,12 @@
 *       *********************************************************
 *       *                                                         
-*       * 12/18/25            TAXIMAST.MPR              16:14:04  
+*       * 02/15/26            TAXIMAST.MPR              16:16:25  
 *       *                                                         
 *       *********************************************************
 *       *                                                         
 *       * Jesús J. Ochoa V.                                       
 *       *                                                         
-*       * Copyright (C) 2025                                      
+*       * Copyright (C) 2026                                      
 *       * Servicios Telemáticos de Venezuela J.O.V.               
 *       * Barrio Obrero                                           
 *       * San Cristóbal, Tachi  5001                                 
@@ -28,30 +28,30 @@
 SET SYSMENU TO
 SET SYSMENU AUTOMATIC
 
-DEFINE PAD _7cn0ysnx1 OF _MSYSMENU PROMPT "\<Empresa" COLOR SCHEME 3 ;
+DEFINE PAD _7ec0yvopa OF _MSYSMENU PROMPT "\<Empresa" COLOR SCHEME 3 ;
 	KEY ALT+E, ""
 DEFINE PAD _msm_file OF _MSYSMENU PROMPT "\<Operativo" COLOR SCHEME 3 ;
 	NEGOTIATE  LEFT, NONE ;
 	KEY ALT+A, "" ;
 	MESSAGE "Crea, abre, guarda o imprime archivos, o sale de Visual FoxPro"
-DEFINE PAD _7cn0ysnx2 OF _MSYSMENU PROMPT "\<Administrativo" COLOR SCHEME 3 ;
+DEFINE PAD _7ec0yvopb OF _MSYSMENU PROMPT "\<Administrativo" COLOR SCHEME 3 ;
 	KEY ALT+A, ""
-DEFINE PAD _7cn0ysnx3 OF _MSYSMENU PROMPT "\<Informes" COLOR SCHEME 3 ;
+DEFINE PAD _7ec0yvopc OF _MSYSMENU PROMPT "\<Informes" COLOR SCHEME 3 ;
 	KEY ALT+I, ""
-DEFINE PAD _7cn0ysnx4 OF _MSYSMENU PROMPT "\<Mantenimiento" COLOR SCHEME 3 ;
+DEFINE PAD _7ec0yvopd OF _MSYSMENU PROMPT "\<Mantenimiento" COLOR SCHEME 3 ;
 	KEY ALT+M, ""
 DEFINE PAD _msm_systm OF _MSYSMENU PROMPT "\<Ayuda" COLOR SCHEME 3 ;
 	KEY ALT+U, "" ;
 	MESSAGE "Muestra Ayuda acerca de Visual FoxPro"
-DEFINE PAD _7cn0ysnx5 OF _MSYSMENU PROMPT "\<Salir" COLOR SCHEME 3 ;
+DEFINE PAD _7ec0yvope OF _MSYSMENU PROMPT "\<Salir" COLOR SCHEME 3 ;
 	KEY ALT+S, ""
-ON PAD _7cn0ysnx1 OF _MSYSMENU ACTIVATE POPUP empresas
+ON PAD _7ec0yvopa OF _MSYSMENU ACTIVATE POPUP empresas
 ON PAD _msm_file OF _MSYSMENU ACTIVATE POPUP operativo
-ON PAD _7cn0ysnx2 OF _MSYSMENU ACTIVATE POPUP administra
-ON PAD _7cn0ysnx3 OF _MSYSMENU ACTIVATE POPUP informes
-ON PAD _7cn0ysnx4 OF _MSYSMENU ACTIVATE POPUP mantenimie
+ON PAD _7ec0yvopb OF _MSYSMENU ACTIVATE POPUP administra
+ON PAD _7ec0yvopc OF _MSYSMENU ACTIVATE POPUP informes
+ON PAD _7ec0yvopd OF _MSYSMENU ACTIVATE POPUP mantenimie
 ON PAD _msm_systm OF _MSYSMENU ACTIVATE POPUP ayuda
-ON SELECTION PAD _7cn0ysnx5 OF _MSYSMENU goApp.Release
+ON SELECTION PAD _7ec0yvope OF _MSYSMENU goApp.Release
 
 DEFINE POPUP empresas MARGIN RELATIVE SHADOW COLOR SCHEME 4
 DEFINE BAR 1 OF empresas PROMPT "Empresa"

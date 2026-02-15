@@ -1,0 +1,291 @@
+# Migración WhatsApp: FoxWhatsApp COM → HTTP Backend
+
+## Objetivo
+
+Migrar el envío de mensajes WhatsApp en TAXIMAST reemplazando la biblioteca COM `FoxWhatsApp.WhatsAppSel` por **peticiones HTTP (POST y GET)** hacia un backend externo que usará la API oficial de WhatsApp Business. Solo cambia la forma de envío, los datos se mantienen idénticos.
+
+---
+
+## 1. Análisis Completo de Datos Actuales
+
+### 1A. `servicios.SCT` — Despacho de servicio (2 envíos)
+
+#### Envío al Chofer (unidad de taxi)
+
+| Campo VFP | Tabla | Descripción |
+|---|---|---|
+| `TELECHOFE` | `SOCIOS.TELESOCI` | Teléfono del chofer (destino) |
+| `SOLISERV` | `MSERV` | Solicitud/nombre del cliente |
+| `DIRECLIE` | `MSERV` | Dirección del cliente |
+| `REFECLIE` | `MSERV` | Referencia de ubicación |
+| `ENCOCLIE` | `MSERV` | Encomienda/contacto del cliente |
+| `HORA1SER` | `MSERV` | Hora del servicio |
+| 🆕 `coordinates` | Backend | Coordenadas del cliente (si envió ubicación por WhatsApp) |
+
+**Mensaje construido:**
+```
+"CLIENTE: {SOLISERV} {DIRECLIE} {REFECLIE}, {ENCOCLIE} HORA:{HORA1SER}"
+```
+
+> [!TIP]
+> **Nuevo: enlace de Google Maps.** Si el cliente envió su ubicación por WhatsApp, el backend la almacena. VFP puede hacer un GET para obtener las coordenadas y agregar un enlace al mensaje del chofer:
+> `https://maps.google.com/?q={lat},{lng}`
+
+#### Envío al Cliente
+
+| Campo VFP | Tabla | Descripción |
+|---|---|---|
+| `CEDUCLIE` | `MSERV` | Cédula/teléfono del cliente (destino) |
+| `VERSEMPRE` | `EMPRESAS` | Mensaje/versión de la empresa |
+
+---
+
+### 1B. [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT) — Envío masivo a socios
+
+| Campo VFP | Tabla | Descripción |
+|---|---|---|
+| `TELESOCI` | `SOCIOS` | Teléfono del socio (destino) |
+| `thisform.text1.value` | Formulario | Texto escrito por operador |
+| `HORA1SER` | `MSERV` | Hora (concatenado al mensaje) |
+
+**Pre-carga:** `"LE SALUDA {NOMUSER} {APEUSER} SU OPERADOR(A) DE GUARDIA"`
+**Condición:** `STATSOCIO # "0" .AND. WS1 = 1`
+
+---
+
+### 1C. `login.SCT` — Inicialización
+
+| Dato | Valor |
+|---|---|
+| `Check1.value` | Checkbox "Conectar con WhatsApp" |
+| `WS1` | Variable global: `1` = activo, `0` = inactivo |
+
+---
+
+## 2. Qué puedo hacer yo vs qué debes hacer tú
+
+| Tarea | ¿Quién? | Razón |
+|---|---|---|
+| Crear `whatsapp_http.prg` | 🤖 **Yo** | Archivo [.PRG](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/PROGS/REPE.PRG) (texto plano) |
+| Especificar backend | 🤖 **Yo** (instrucciones) | Tú lo implementas en Next.js |
+| Modificar `login.SCT` | 👤 **Tú en VFP** | Archivo binario |
+| Modificar `servicios.SCT` | 👤 **Tú en VFP** | Archivo binario |
+| Modificar [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT) | 👤 **Tú en VFP** | Archivo binario |
+
+---
+
+## 3. API Contract del Backend (Next.js)
+
+> [!IMPORTANT]
+> Esta es la especificación que tu backend Next.js debe implementar. VFP enviará POST y GET a estos endpoints.
+
+### Peticiones POST (VFP → Backend)
+
+#### `POST /api/whatsapp/send` — Mensaje individual
+
+**Request:**
+```json
+{
+  "phone": "04121234567",
+  "message": "CLIENTE: Juan Perez Av. Libertador Frente al banco HORA:10:30 AM https://maps.google.com/?q=10.4806,-66.9036",
+  "type": "dispatch_driver"
+}
+```
+
+| `type` | Cuándo se usa |
+|---|---|
+| `dispatch_driver` | Mensaje al chofer al despachar servicio |
+| `dispatch_client` | Mensaje al cliente al despachar servicio |
+| `broadcast_partners` | Mensaje masivo a socios |
+
+**Response (200):**
+```json
+{ "success": true, "messageId": "wamid.xxx" }
+```
+
+**Response (error):**
+```json
+{ "success": false, "error": "Descripción del error" }
+```
+
+#### `POST /api/whatsapp/send-bulk` — Mensajes masivos
+
+**Request:**
+```json
+{
+  "messages": [
+    { "phone": "04121234567", "message": "LE SALUDA Maria Garcia..." },
+    { "phone": "04129876543", "message": "LE SALUDA Maria Garcia..." }
+  ],
+  "type": "broadcast_partners"
+}
+```
+
+**Response (200):**
+```json
+{ "success": true, "sent": 15, "failed": 0 }
+```
+
+---
+
+### Peticiones GET (VFP → Backend)
+
+#### `GET /api/whatsapp/status` — Verificar conexión
+
+**Response:**
+```json
+{ "connected": true, "service": "whatsapp-business-api" }
+```
+
+#### `GET /api/whatsapp/location?phone={phone}` — Obtener última ubicación
+
+> [!NOTE]
+> Este endpoint es para el feature de coordenadas. El backend almacena ubicaciones recibidas vía webhook de WhatsApp. VFP consulta la última ubicación del cliente antes de despachar.
+
+**Request:** `GET /api/whatsapp/location?phone=04121234567`
+
+**Response (con ubicación):**
+```json
+{
+  "found": true,
+  "latitude": 10.4806,
+  "longitude": -66.9036,
+  "maps_url": "https://maps.google.com/?q=10.4806,-66.9036",
+  "timestamp": "2026-02-15T10:30:00Z"
+}
+```
+
+**Response (sin ubicación):**
+```json
+{ "found": false }
+```
+
+---
+
+### Webhook (WhatsApp → Backend)
+
+Tu backend Next.js necesitará un endpoint webhook para recibir mensajes entrantes de WhatsApp (incluyendo ubicaciones):
+
+#### `POST /api/whatsapp/webhook` — Recibe eventos de WhatsApp
+
+Cuando un cliente envía su ubicación por WhatsApp, Meta envía un webhook con:
+```json
+{
+  "messages": [{
+    "from": "584121234567",
+    "type": "location",
+    "location": {
+      "latitude": 10.4806,
+      "longitude": -66.9036
+    }
+  }]
+}
+```
+
+El backend debe almacenar esas coordenadas asociadas al teléfono para que VFP las pueda consultar con el GET anterior.
+
+---
+
+## 4. Proposed Changes
+
+### Módulo HTTP (lo creo yo)
+
+#### [NEW] [whatsapp_http.prg](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/PROGS/whatsapp_http.prg)
+
+Funciones:
+
+| Función | Tipo HTTP | Descripción |
+|---|---|---|
+| `WA_CheckStatus()` | **GET** | Verifica conexión al backend |
+| `WA_GetLocation(cPhone)` | **GET** | Obtiene coordenadas del cliente |
+| `WA_SendMessage(cPhone, cMsg, cType)` | **POST** | Envía mensaje individual |
+| `WA_SendBulk(cJsonArray, cType)` | **POST** | Envía mensajes masivos |
+| `WA_HttpPost(cUrl, cJson)` | **POST** | Wrapper HTTP genérico |
+| `WA_HttpGet(cUrl)` | **GET** | Wrapper HTTP genérico |
+| `WA_EscapeJson(cText)` | — | Escapa caracteres para JSON |
+
+---
+
+### Formulario de Login (lo haces tú en VFP)
+
+#### [MODIFY] [login.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/login.SCT)
+
+En el evento **Click** del botón de login, reemplaza el bloque `Check1`:
+
+```diff
+ if ThisForm.Check1.value = 1
+    WS1 = 1
+-   PUBLIC loWsp
+-   loWsp = CREATEOBJECT('FoxWhatsApp.WhatsAppSel')
+-   loWsp.lcCorreoLicencia = "servitelv@gmail.com"
+-   loWsp.lcPerfil = "Default"
+-   loWsp.lnModoInteraccion = 1
+-   WAIT WINDOW "Conectando con WhatsApp..." NOWAIT
+-   loWsp.conecta()
+-   loWsp.Viewwhatsappweb(.t.)
++   SET PROCEDURE TO PROGS\whatsapp_http ADDITIVE
++   WAIT WINDOW "Verificando conexión WhatsApp..." NOWAIT
++   IF WA_CheckStatus()
++      WAIT WINDOW "WhatsApp conectado" TIMEOUT 2
++   ELSE
++      MESSAGEBOX("No se pudo conectar con WhatsApp", 16, "Error")
++      WS1 = 0
++      ThisForm.Check1.value = 0
++   ENDIF
+ ELSE
+    WS1 = 0
+ endif
+```
+
+---
+
+### Formulario de Servicios (lo haces tú en VFP)
+
+#### [MODIFY] [servicios.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/servicios.SCT)
+
+En el evento **Click** del despacho, reemplazar `lowsp.SendMessage(...)`:
+
+```diff
+ && Envío al chofer:
+-lowsp.SendMessage(RTRIM(TELECHOFE),+"CLIENTE: "...)
++lcMsg = "CLIENTE: "+RTRIM(mserv.soliserv)+" "+RTRIM(mserv.direclie) ;
++   +" "+RTRIM(mserv.refeclie)+", "+RTRIM(MSERV.ENCOCLIE) ;
++   +" HORA:"+RTRIM(MSERV.HORA1SER)
++
++&& Intentar agregar enlace de ubicación
++lcLocation = WA_GetLocation(RTRIM(MSERV.CEDUCLIE))
++IF !EMPTY(lcLocation)
++   lcMsg = lcMsg + " " + lcLocation
++ENDIF
++
++WA_SendMessage(RTRIM(TELECHOFE), lcMsg, "dispatch_driver")
+
+ && Envío al cliente:
+-lowsp.SendMessage(RTRIM(MSERV.CEDUCLIE),RTRIM(empresas.versempre))
++WA_SendMessage(RTRIM(MSERV.CEDUCLIE), RTRIM(empresas.versempre), "dispatch_client")
+```
+
+---
+
+### Formulario de Mensajes (lo haces tú en VFP)
+
+#### [MODIFY] [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT)
+
+En el `DO WHILE` del envío masivo:
+
+```diff
+-lo.SendMessage(RTRIM(TELESOCI),+RTRIM(thisform.text1.value)+", "+RTRIM(MSERV.HORA1SER))
++lcMsg = RTRIM(thisform.text1.value)+", "+AMPM(TIME())
++WA_SendMessage(RTRIM(TELESOCI), lcMsg, "broadcast_partners")
+```
+
+---
+
+## 5. Verificación
+
+1. **Compilar** `whatsapp_http.prg` en VFP y probar funciones aisladas desde la ventana de comandos
+2. **Levantar** tu backend Next.js (aunque sea solo loggeando peticiones)
+3. **Probar login** → VFP hace GET a `/api/whatsapp/status`
+4. **Probar despacho** → VFP hace GET a `/api/whatsapp/location` + POST a `/api/whatsapp/send`
+5. **Probar masivo** → VFP hace POST a `/api/whatsapp/send-bulk`
+6. **Verificar** en logs del backend que los datos llegan correctos
