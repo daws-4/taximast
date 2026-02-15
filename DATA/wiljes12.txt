@@ -1,0 +1,9 @@
+
+Validate Database WILJES:
+Need EXCLUSIVE writeable access to rebuild structural index.
+ Object #582 (Index 'statelim'): Tag not found in structural CDX for table 'mserv.dbf'.
+ Object #12 (Table 'munid'): One or more structural indexes missing from DBC.
+ Object #77 (Table 'socios'): One or more structural indexes missing from DBC.
+ Object #269 (Table 'ingregre'): One or more structural indexes missing from DBC.
+ Object #461 (Index 'num2serv'): Tag not found in structural CDX for table 'hmserv'.
+ Object #516 (Table 'detaserv2'): One or more structural indexes missing from DBC.

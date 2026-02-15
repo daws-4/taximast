@@ -1,0 +1,47 @@
+# === Compiled VFP files ===
+*.fxp
+*.exe
+*.dll
+*.app
+
+# === VFP project files (binary, locked by VFP) ===
+*.PJT
+*.PJX
+*.pjt
+*.pjx
+
+# === VFP temp/user files ===
+FOXUSER.DBF
+FOXUSER.FPT
+*.ERR
+*.log
+*.bak
+*.BAK
+*.tmp
+
+# === Database data files (large/binary) ===
+*.CDX
+*.DBF
+*.FPT
+*.DBC
+*.DCT
+*.DCX
+
+# === Binary archives ===
+*.rar
+*.zip
+
+# === Windows ===
+DESKTOP.INI
+Thumbs.db
+*.msk
+
+# === FoxPro key files ===
+*.FKY
+
+# === Installer binaries ===
+instalar.exe
+
+# === IDE / Editors ===
+.vs/
+.vscode/

@@ -1,0 +1,11 @@
+
+Validar la base de datos WILJES:
+Necesita acceso EXCLUSIVE con permiso de escritura para volver a generar el índice estructural.
+ Objeto nº 6 (Table 'clientes'): La tabla no está en una base de datos.
+ Objeto nº 448 (Index 'statelim'): No se encuentra la etiqueta en el CDX estructural para la tabla 'd:\taximast\data\mserv.dbf'.
+ Objeto nº 11 (Table 'munid'): En el DBC faltan uno o más índices estructurales.
+ Objeto nº 550 (Index 'codisoci'): No se encuentra la etiqueta en el CDX estructural para la tabla 'd:\taximast\data\socios.dbf'.
+ Objeto nº 228 (Table 'ingregre'): En el DBC faltan uno o más índices estructurales.
+ Objeto nº 327 (Index 'num2serv'): No se encuentra la etiqueta en el CDX estructural para la tabla 'd:\taximast\data\hmserv.dbf'.
+ Objeto nº 575 (Index 'cirif'): No se encuentra la etiqueta en el CDX estructural para la tabla 'd:\taximast\data\beneficiarios.dbf'.
+ Objeto nº 382 (Table 'detaserv2'): En el DBC faltan uno o más índices estructurales.

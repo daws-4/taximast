@@ -1,0 +1,183 @@
+# Análisis de Funciones WhatsApp en Proyecto TAXIMAST (Visual FoxPro)
+
+## Resumen
+
+Se analizó la totalidad del proyecto VFP buscando **cualquier referencia a WhatsApp** — API oficial, bibliotecas no oficiales, URLs de WhatsApp web, o envío de mensajes. Se encontraron **3 formularios** que contienen funcionalidad de WhatsApp, todos utilizando una **biblioteca no oficial** llamada `FoxWhatsApp`.
+
+> [!IMPORTANT]
+> **No se encontró uso de la API oficial de WhatsApp Business** (graph.facebook.com, api.whatsapp.com, etc.). Todo el sistema usa la biblioteca COM `FoxWhatsApp.WhatsAppSel`, que automatiza WhatsApp Web.
+
+---
+
+## Biblioteca Utilizada: `FoxWhatsApp.WhatsAppSel`
+
+| Propiedad | Valor |
+|---|---|
+| **Tipo** | Objeto COM (no oficial) |
+| **Clase** | `FoxWhatsApp.WhatsAppSel` |
+| **Método de acceso** | `CREATEOBJECT()` |
+| **Licencia registrada** | `servitelv@gmail.com` |
+| **Perfil** | `Default` |
+| **Modo interacción** | `1` (probablemente automatizado) |
+
+### Métodos identificados
+
+| Método | Descripción |
+|---|---|
+| `conecta()` | Inicia la conexión con WhatsApp Web |
+| `ViewWhatsAppWeb(.t.)` | Muestra/abre la ventana de WhatsApp Web |
+| `SendMessage(destinatario, mensaje)` | Envía un mensaje a un número de teléfono |
+| `Release` | Libera el objeto COM |
+
+---
+
+## Archivos con Funcionalidad WhatsApp
+
+### 1. [login.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/login.SCT) — Inicialización
+
+**Propósito:** Crear y configurar la conexión a WhatsApp al iniciar sesión.
+
+**Variables globales declaradas:**
+- `loWsp` — Objeto `FoxWhatsApp.WhatsAppSel` (PUBLIC)
+- `WS1` — Flag que indica si WhatsApp está activo (`1` = activo, `0` = inactivo)
+
+```foxpro
+&& En el Init del formulario (línea 48):
+public m.codiuser, m.cortesia, m.nlistas, lo, loWsp, WS1, NOMUSER, APEUSER, CODUSER
+
+&& Al hacer click en el botón de login (líneas 136-150):
+if ThisForm.Check1.value = 1        && Checkbox para activar WhatsApp
+   WS1 = 1
+   PUBLIC loWsp
+   loWsp = CREATEOBJECT('FoxWhatsApp.WhatsAppSel')
+   loWsp.lcCorreoLicencia = "servitelv@gmail.com"
+   loWsp.lcPerfil = "Default"
+   loWsp.lnModoInteraccion = 1
+   WAIT WINDOW "Conectando con WhatsApp..." NOWAIT
+   loWsp.conecta()
+   loWsp.Viewwhatsappweb(.t.)
+ELSE
+   WS1 = 0
+endif
+```
+
+**Recurso gráfico:** Usa [whatsapp.ico](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/GRAPHICS/whatsapp.ico) como ícono del checkbox (línea 184).
+
+---
+
+### 2. [servicios.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/servicios.SCT) — Envío al despachar servicio
+
+**Propósito:** Enviar mensajes WhatsApp automáticos al chofer y al cliente cuando se asigna/despacha un servicio de taxi.
+
+**Evento:** Click en el botón de despacho (líneas ~2050-2082).
+
+```foxpro
+&& Buscar teléfono del chofer
+if seek(alltrim(CHOFE), "socios", "clavsoci")
+   TELECHOFE = SOCIOS.TELESOCI
+ENDIF
+
+&& ENVÍO HACIA EL CHOFER (la unidad de taxi):
+IF ! EMPTY(TELECLIE) .AND. WS1=1 .AND. !EMPTY(MSERV.DIRECLI2)
+   lowsp.SendMessage(RTRIM(TELECHOFE), +"CLIENTE: " + RTRIM(mserv.soliserv) ;
+      + " " + RTRIM(mserv.direclie) + " " + RTRIM(mserv.refeclie) ;
+      + ", " + RTRIM(MSERV.ENCOCLIE) + " " ;
+      + "HORA:" + RTRIM(MSERV.HORA1SER))
+ENDIF
+
+&& ENVÍO HACIA EL CLIENTE:
+IF ! EMPTY(TELECLIE) .AND. WS1=1 .AND. EMPTY(MSERV.DIRECLI2)
+   lowsp.SendMessage(RTRIM(MSERV.CEDUCLIE), RTRIM(empresas.versempre))
+ENDIF
+```
+
+**Datos enviados al chofer:**
+- Nombre/solicitud del cliente (`SOLISERV`)
+- Dirección (`DIRECLIE`)
+- Referencia (`REFECLIE`)
+- Encomienda/contacto (`ENCOCLIE`)
+- Hora del servicio (`HORA1SER`)
+
+**Datos enviados al cliente:**
+- Versión/mensaje de la empresa (`VERSEMPRE`)
+
+> [!NOTE]
+> Hay una línea comentada (`*lowsp.SendMessage(RTRIM(MSERV.CEDUCLIE)...`) que sugiere un envío anterior al cliente que fue desactivado.
+
+---
+
+### 3. [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT) — Envío masivo a socios
+
+**Propósito:** Enviar mensajes masivos por WhatsApp a todos los socios (choferes) activos.
+
+**Funcionalidades:**
+
+#### Init del formulario (líneas 60-66):
+```foxpro
+&& Pre-carga el texto de saludo en el campo de mensaje
+KEYB("LE SALUDA " + NOMUSER + " " + APEUSER + " SU OPERADOR(A) DE GUARDIA")
+```
+
+#### Click — Envío masivo (líneas ~185-205):
+```foxpro
+IF 6 = MESSAGEBOX("¿Seguro de Continuar?", 256+32+4, "Atención !!!")
+   do while ! eof()
+      IF STATSOCIO # "0" .AND. WS1=1
+         lo.SendMessage(RTRIM(TELESOCI), +RTRIM(thisform.text1.value) ;
+            + ", " + RTRIM(MSERV.HORA1SER))   && ENVIO HACIA LA UNIDAD
+         repl servxcli with 0
+      ENDIF
+      skip
+   ENDDO
+ENDIF
+```
+
+> [!WARNING]
+> Hay líneas comentadas con `* lo.SendMessage(RTRIM(CEDUCLIE)...)` que indican funcionalidad anterior de envío al cliente que fue desactivada.
+
+**Datos enviados a cada socio:**
+- Contenido del campo de texto del formulario (`thisform.text1.value`)
+- Hora del servicio (`MSERV.HORA1SER`)
+
+---
+
+## Recursos Gráficos
+
+| Archivo | Ubicación |
+|---|---|
+| [whatsapp.ico](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/GRAPHICS/whatsapp.ico) | [GRAPHICS\whatsapp.ico](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/GRAPHICS/whatsapp.ico) |
+| [whatsapp.png](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/GRAPHICS/whatsapp.png) | [GRAPHICS\whatsapp.png](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/GRAPHICS/whatsapp.png) |
+
+---
+
+## Flujo de Datos WhatsApp
+
+```mermaid
+flowchart TD
+    A["login.SCT<br/>Check1 = Activar WhatsApp"] -->|"WS1=1"| B["CREATEOBJECT<br/>FoxWhatsApp.WhatsAppSel"]
+    B --> C["loWsp.conecta()"]
+    C --> D["loWsp.ViewWhatsAppWeb(.t.)"]
+    D --> E{"Variable global loWsp<br/>disponible en toda la app"}
+    
+    E --> F["servicios.SCT<br/>Despachar servicio"]
+    E --> G["mensaje.SCT<br/>Mensajes masivos"]
+    
+    F -->|"SendMessage"| H["📱 Chofer: datos del servicio"]
+    F -->|"SendMessage"| I["📱 Cliente: info de empresa"]
+    
+    G -->|"SendMessage (loop)"| J["📱 Todos los socios activos:<br/>mensaje personalizado"]
+```
+
+---
+
+## Resumen de Hallazgos
+
+| # | Formulario | Función | Tipo de Envío |
+|---|---|---|---|
+| 1 | `login.SCT` | Inicialización y conexión | Conexión a WhatsApp Web |
+| 2 | `servicios.SCT` | Notificar despacho de servicio | Individual → chofer y cliente |
+| 3 | [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT) | Mensajes masivos a socios | Masivo → todos los socios activos |
+
+**Total de llamadas a `SendMessage` activas:** ~4 (2 en `servicios.SCT`, 1+ en [mensaje.SCT](file:///c:/Users/USUARIO/Desktop/proyectos/taximast/taximast/FORMS/mensaje.SCT), varias comentadas)
+
+**Archivos sin WhatsApp:** Ningún archivo `.prg`, `.vcx`, `.vct`, ni menús contiene código WhatsApp.

@@ -1,0 +1,3 @@
+SELECT Dunid.codiunid, Dunid.desaunid, Dunid.fechunid, Dunid.horaunid,;
+  Dunid.fechsali, Dunid.horasali, Dunid.zonaunid, Dunid.statunid;
+ FROM wiljes!dunid
