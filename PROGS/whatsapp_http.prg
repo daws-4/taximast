@@ -18,10 +18,15 @@
 * Retorna: .T. si el backend responde OK, .F. si falla
 *=============================================================================
 FUNCTION WA_CheckStatus
+   LPARAMETERS cInfo
    LOCAL lcUrl, lcResponse, llResult
 
    lcUrl = WA_BASE_URL + "/status"
    lcResponse = WA_HttpGet(lcUrl)
+
+   IF PCOUNT() > 0
+      cInfo = lcResponse
+   ENDIF
 
    IF EMPTY(lcResponse)
       RETURN .F.
@@ -32,6 +37,22 @@ FUNCTION WA_CheckStatus
       .OR. (AT('"connected": true', lcResponse) > 0)
 
    RETURN llResult
+ENDFUNC
+
+*=============================================================================
+* WA_TestConnection() - Prueba la conexion y devuelve el mensaje crudo
+* Retorna: String con el resultado (SUCCESS + JSON o FAILED + Error)
+*=============================================================================
+FUNCTION WA_TestConnection
+   LOCAL lcMsg, llOk
+   lcMsg = ""
+   llOk = WA_CheckStatus(@lcMsg)
+   
+   IF llOk
+      RETURN "SUCCESS: " + lcMsg
+   ELSE
+      RETURN "FAILED: " + lcMsg
+   ENDIF
 ENDFUNC
 
 *=============================================================================

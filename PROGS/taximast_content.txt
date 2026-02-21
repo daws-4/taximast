@@ -1,5 +1,4 @@
 set proce to \taximast\progs\instala.prg
-SET PROCEDURE TO PROGS\whatsapp_http ADDITIVE
 a=time()
 b=dtoc(date())
 c=subs(a,1,2)+subs(a,4,2)
