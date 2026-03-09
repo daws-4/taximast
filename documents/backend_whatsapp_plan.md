@@ -30,6 +30,8 @@ Envía un mensaje individual (texto + imagen opcional).
 **Request body:**
 ```json
 {
+  "line_id": "69a7830cc01d88c3bf686d3e",
+  "line_name": "TAXI PRUEBAS SC",
   "phone": "04121234567",
   "message": "CLIENTE: Juan Perez Av. Libertador...",
   "type": "dispatch_driver",
@@ -37,8 +39,15 @@ Envía un mensaje individual (texto + imagen opcional).
 }
 ```
 
+**Headers adicionales:**
+```
+X-Line-Id: 69a7830cc01d88c3bf686d3e
+```
+
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---|---|
+| `line_id` | string | ✅ | ID alfanumérico único de la línea |
+| `line_name` | string | ✅ | Nombre visual de la línea |
 | `phone` | string | ✅ | Teléfono destino |
 | `message` | string | ✅ | Texto del mensaje |
 | `type` | string | ✅ | `dispatch_driver`, `dispatch_client`, `broadcast_clients`, `broadcast_partners` |
@@ -103,8 +112,15 @@ Envía mensajes a múltiples destinatarios.
     { "phone": "04121234567", "message": "LE SALUDA Maria..." },
     { "phone": "04129876543", "message": "LE SALUDA Maria..." }
   ],
+  "line_id": "69a7830cc01d88c3bf686d3e",
+  "line_name": "TAXI PRUEBAS SC",
   "type": "broadcast_partners"
 }
+```
+
+**Headers adicionales:**
+```
+X-Line-Id: 69a7830cc01d88c3bf686d3e
 ```
 
 **Lógica:**
@@ -191,6 +207,11 @@ Responder con el valor de `hub.challenge` si el `verify_token` coincide.
 WHATSAPP_ACCESS_TOKEN=EAAxxxxxxx
 WHATSAPP_PHONE_NUMBER_ID=1234567890
 WHATSAPP_VERIFY_TOKEN=mi-token-secreto
+
+# Lineas de taxi registradas (validacion)
+# El backend debe mantener un registro de line_id validos
+# para rechazar requests de lineas no autorizadas
+REGISTERED_LINE_IDS=69a7830cc01d88c3bf686d3e
 
 # Base de datos (para almacenar ubicaciones)
 DATABASE_URL=mongodb://... o postgres://...

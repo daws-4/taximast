@@ -9,9 +9,15 @@
 
 * ---- CONFIGURACION ----
 * Cambiar estos valores seg�n el entorno (desarrollo/producci�n)
-#DEFINE WA_BASE_URL    "http://localhost:3000/api/whatsapp"
+#DEFINE WA_BASE_URL    "https://pruebas.davidvillamizar.com/api/whatsapp"
 #DEFINE WA_API_KEY     ""
 #DEFINE WA_TIMEOUT     30
+
+* ---- IDENTIFICACION DE LINEA ----
+* ID unico de la linea para el sistema web centralizado
+#DEFINE WA_LINE_ID     "69a7830cc01d88c3bf686d3e"
+* Nombre visual de la linea
+#DEFINE WA_LINE_NAME   "TAXI PRUEBAS SC"
 
 *=============================================================================
 * WA_CheckStatus() - Verifica si el backend esta disponible
@@ -91,6 +97,8 @@ FUNCTION WA_SendMessage
 
    * Construir JSON
    lcJson = '{'
+   lcJson = lcJson + '"line_id":"' + WA_LINE_ID + '",'
+   lcJson = lcJson + '"line_name":"' + WA_EscapeJson(WA_LINE_NAME) + '",'
    lcJson = lcJson + '"phone":"' + WA_EscapeJson(cPhone) + '",'
    lcJson = lcJson + '"message":"' + WA_EscapeJson(cMessage) + '",'
    lcJson = lcJson + '"type":"' + WA_EscapeJson(cType) + '"'
@@ -151,6 +159,8 @@ FUNCTION WA_SendBulk
    ENDFOR
 
    lcJson = lcJson + '],'
+   lcJson = lcJson + '"line_id":"' + WA_LINE_ID + '",'
+   lcJson = lcJson + '"line_name":"' + WA_EscapeJson(WA_LINE_NAME) + '",'
    lcJson = lcJson + '"type":"' + WA_EscapeJson(ALLTRIM(cType)) + '"'
    lcJson = lcJson + '}'
 
@@ -220,6 +230,7 @@ FUNCTION WA_HttpPost
       loHttp.Open("POST", cUrl, .F.)
       loHttp.setRequestHeader("Content-Type", "application/json")
       loHttp.setRequestHeader("Accept", "application/json")
+      loHttp.setRequestHeader("X-Line-Id", WA_LINE_ID)
 
       * Agregar API key si est� configurada
       IF !EMPTY(WA_API_KEY)
@@ -269,6 +280,7 @@ FUNCTION WA_HttpGet
       loHttp = CREATEOBJECT("MSXML2.ServerXMLHTTP.6.0")
       loHttp.Open("GET", cUrl, .F.)
       loHttp.setRequestHeader("Accept", "application/json")
+      loHttp.setRequestHeader("X-Line-Id", WA_LINE_ID)
 
       * Agregar API key si est� configurada
       IF !EMPTY(WA_API_KEY)
