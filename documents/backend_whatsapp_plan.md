@@ -35,7 +35,17 @@ Envía un mensaje individual (texto + imagen opcional).
   "phone": "04121234567",
   "message": "CLIENTE: Juan Perez Av. Libertador...",
   "type": "dispatch_driver",
-  "image": "D:\\TAXIMAST\\IDENTIFICADORES\\CHOFER01.PNG"
+  "image": "D:\\TAXIMAST\\IDENTIFICADORES\\CHOFER01.PNG",
+  "driver": {
+    "phone": "04241234567",
+    "name": "PEDRO PEREZ",
+    "unit": "42"
+  },
+  "client": {
+    "phone": "04121234567",
+    "name": "JUAN LOPEZ",
+    "address": "Av. Libertador..."
+  }
 }
 ```
 
@@ -50,8 +60,10 @@ X-Line-Id: 69a7830cc01d88c3bf686d3e
 | `line_name` | string | ✅ | Nombre visual de la línea |
 | `phone` | string | ✅ | Teléfono destino |
 | `message` | string | ✅ | Texto del mensaje |
-| `type` | string | ✅ | `dispatch_driver`, `dispatch_client`, `broadcast_clients`, `broadcast_partners` |
-| `image` | string | ❌ | Ruta local de imagen (identificador del chofer) |
+| `type` | string | ✅ | `dispatch_driver`, `dispatch_client`, etc. |
+| `image` | string | ❌ | Ruta local de imagen |
+| `driver` | object | ❌ | Datos del chofer (phone, name, unit) |
+| `client` | object | ❌ | Datos del cliente (phone, name, address) |
 
 **Lógica:**
 1. Si `image` está presente:

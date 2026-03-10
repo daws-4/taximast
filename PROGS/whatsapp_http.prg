@@ -9,7 +9,7 @@
 
 * ---- CONFIGURACION ----
 * Cambiar estos valores seg�n el entorno (desarrollo/producci�n)
-#DEFINE WA_BASE_URL    "https://pruebas.davidvillamizar.com/api/whatsapp"
+#DEFINE WA_BASE_URL    "https://taximast.enlaredve.com/api/whatsapp"
 #DEFINE WA_API_KEY     ""
 #DEFINE WA_TIMEOUT     30
 
@@ -71,7 +71,9 @@ ENDFUNC
 * Retorna: .T. si fue exitoso, .F. si fallo
 *=============================================================================
 FUNCTION WA_SendMessage
-   LPARAMETERS cPhone, cMessage, cType, cImagePath
+   LPARAMETERS cPhone, cMessage, cType, cImagePath, ;
+               cDriverPhone, cDriverName, cUnit, ;
+               cClientPhone, cClientName, cAddress
    LOCAL lcUrl, lcJson, lcResponse, llResult
 
    * Valores por defecto
@@ -103,6 +105,24 @@ FUNCTION WA_SendMessage
    lcJson = lcJson + '"message":"' + WA_EscapeJson(cMessage) + '",'
    lcJson = lcJson + '"type":"' + WA_EscapeJson(cType) + '"'
 
+   * Datos de Chofer
+   IF VARTYPE(cDriverPhone) == "C" .AND. !EMPTY(cDriverPhone)
+      lcJson = lcJson + ',"driver":{'
+      lcJson = lcJson + '"phone":"' + WA_EscapeJson(ALLTRIM(cDriverPhone)) + '",'
+      lcJson = lcJson + '"name":"' + WA_EscapeJson(ALLTRIM(EVL(cDriverName, ""))) + '",'
+      lcJson = lcJson + '"unit":"' + WA_EscapeJson(ALLTRIM(EVL(cUnit, ""))) + '"'
+      lcJson = lcJson + '}'
+   ENDIF
+
+   * Datos de Cliente
+   IF VARTYPE(cClientPhone) == "C" .AND. !EMPTY(cClientPhone)
+      lcJson = lcJson + ',"client":{'
+      lcJson = lcJson + '"phone":"' + WA_EscapeJson(ALLTRIM(cClientPhone)) + '",'
+      lcJson = lcJson + '"name":"' + WA_EscapeJson(ALLTRIM(EVL(cClientName, ""))) + '",'
+      lcJson = lcJson + '"address":"' + WA_EscapeJson(ALLTRIM(EVL(cAddress, ""))) + '"'
+      lcJson = lcJson + '}'
+   ENDIF
+
    * Agregar imagen si se proporcion�
    IF !EMPTY(cImagePath)
       lcJson = lcJson + ',"image":"' + WA_EscapeJson(cImagePath) + '"'
@@ -111,7 +131,7 @@ FUNCTION WA_SendMessage
    lcJson = lcJson + '}'
 
    * Enviar POST
-   lcUrl = WA_BASE_URL + "/send"
+   lcUrl = WA_BASE_URL + "/dispatch"
    lcResponse = WA_HttpPost(lcUrl, lcJson)
 
    IF EMPTY(lcResponse)
@@ -165,7 +185,7 @@ FUNCTION WA_SendBulk
    lcJson = lcJson + '}'
 
    * Enviar POST
-   lcUrl = WA_BASE_URL + "/send-bulk"
+   lcUrl = WA_BASE_URL + "/dispatch-bulk"
    lcResponse = WA_HttpPost(lcUrl, lcJson)
 
    IF EMPTY(lcResponse)
